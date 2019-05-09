@@ -2,7 +2,7 @@ FROM alpine:latest as builder
 MAINTAINER Yang <liuy_pub@gmail.com>
 
 ARG NGINX_VERSION=1.15.3
-ARG NGINX_RTMP_VERSION=1.2.5
+ARG NGINX_RTMP_VERSION=1.2.6
 
 
 RUN	apk update		&&	\
@@ -45,7 +45,7 @@ RUN	cd /tmp										&&	\
 	./configure										\
 		--prefix=/opt/nginx								\
 		--with-http_ssl_module								\
-		--add-module=../nginx-rtmp-module					&&	\
+		--add-module=../nginx-rtmp-flv-module					&&	\
 	make										&&	\
 	make install
 
