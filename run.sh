@@ -33,14 +33,29 @@ http {
         listen          8080;
         server_name     localhost;
 
+        
+        location /flv {
+            flv_live on; #open flv live streaming (subscribe)
+            chunked_transfer_encoding  on; #open 'Transfer-Encoding: chunked' response
+
+            add_header 'Access-Control-Allow-Origin' '*'; #add additional HTTP header
+            add_header 'Access-Control-Allow-Credentials' 'true'; #add additional HTTP header
+        }
+
         location /hls {
             types {
                 application/vnd.apple.mpegurl m3u8;
-                video/mp2ts ts;
+                video/mp2t ts;
             }
+
             root /tmp;
-            add_header  Cache-Control no-cache;
-            add_header  Access-Control-Allow-Origin *;
+            add_header 'Cache-Control' 'no-cache';
+	   
+            add_header 'Access-Control-Allow-Origin' '*' always;                
+            add_header 'Access-Control-Allow-Credentials' 'true';                
+            add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range';                
+            add_header 'Access-Control-Allow-Headers' 'Range';
+
         }
 
         location /on_publish {
@@ -52,6 +67,10 @@ http {
         }
         location /stat.xsl {
             alias /opt/nginx/conf/stat.xsl;
+        }
+        location /json {
+            rtmp_stat all;
+            rtmp_stat_format json;
         }
         location /control {
             rtmp_control all;
@@ -70,6 +89,14 @@ http {
 ## RTMP Config
 cat >>${NGINX_CONFIG_FILE} <<!EOF
 rtmp {
+    out_queue           4096;
+    out_cork            8;
+    max_streams         128;
+    timeout             15s;
+    drop_idle_publisher 1800s;
+    log_interval 5s; #interval used by log module to log in access.log, it is very useful for debug
+    log_size     1m; #buffer size used by log module to log in access.log
+
     server {
         listen 1935;
         chunk_size 4096;
@@ -92,13 +119,14 @@ cat >>${NGINX_CONFIG_FILE} <<!EOF
             live on;
             record off;
             on_publish http://localhost:8080/on_publish;
+            gop_cache on;
 !EOF
 if [ "${HLS}" = "true" ]; then
 cat >>${NGINX_CONFIG_FILE} <<!EOF
             hls on;
             hls_path /tmp/hls;
-            hls_fragment    1;
-            hls_playlist_length     20;
+            hls_fragment    1s;
+            hls_playlist_length     3s;
 !EOF
     HLS="false"
 fi
